@@ -295,7 +295,7 @@ state_group = GroongaStressTest::StateGroup.new
 
 runner = StressTest::Runner.new(GroongaStressTest::Flow.new,
                                 state_group.create_state,
-                                :run_count => 100000,
+                                :run_count => 100000000,
                                 :sleep_second => 0)
 begin
   runner.run
