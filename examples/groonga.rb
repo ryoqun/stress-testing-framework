@@ -99,6 +99,10 @@ module GroongaStressTest
     end
   end
 
+  #TODO CloseTable # remove reference to Table object, thereby making Ruby Table object GC-ed eventually
+
+  #TODO OpenTable # pick random Table from Database#each
+
   class DefineColumn < StressTest::Action
     def arguments
       table = @state.random_table
