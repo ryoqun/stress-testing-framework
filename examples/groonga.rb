@@ -300,6 +300,12 @@ Thread.new do
   end
 end
 =end
+Thread.new do
+  loop do
+    puts ObjectSpace.count_objects
+    sleep 3
+  end
+end
 
 state_group = GroongaStressTest::StateGroup.new
 
