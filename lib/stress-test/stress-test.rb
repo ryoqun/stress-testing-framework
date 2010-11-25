@@ -260,16 +260,13 @@ module StressTest
       @flow = flow
       @state = state
       @options = options
+
+      initialize_sleep_second
     end
 
     DEFAULT_RUN_COUNT = 10
     def run_count
       @options[:run_count] || DEFAULT_RUN_COUNT
-    end
-
-    DEFAULT_SLEEP_SECOND = 1
-    def sleep_second
-      @options[:sleep_second] || DEFAULT_SLEEP_SECOND
     end
 
     def run
@@ -291,7 +288,17 @@ module StressTest
       #puts transition.inspect
       #puts @state.resources.inspect
       @flow.transit_state(@state, transition)
-      sleep sleep_second unless sleep_second.zero?
+      sleep
+    end
+
+    private
+    DEFAULT_SLEEP_SECOND = 1
+    def initialize_sleep_second
+      @sleep_second = @options[:sleep_second] || DEFAULT_SLEEP_SECOND
+    end
+
+    def sleep
+      super(@sleep_second) unless @sleep_second.zero?
     end
   end
 end
