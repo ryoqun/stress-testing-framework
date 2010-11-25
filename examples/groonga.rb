@@ -307,15 +307,22 @@ Thread.new do
   end
 end
 
-state_group = GroongaStressTest::StateGroup.new
+thread_count = 1
 
-runner = StressTest::Runner.new(GroongaStressTest::Flow.new,
-                                state_group.create_state,
-                                :run_count => 100000000,
-                                :sleep_second => 0)
-begin
-  runner.run
-#rescue
-end
+state_group = GroongaStressTest::StateGroup.new
+states = thread_count.times.collect{state_group.create_state}
+
+states.collect do |state|
+  Thread.new do
+    runner = StressTest::Runner.new(GroongaStressTest::Flow.new,
+                                    states.first,
+                                    :run_count => 100000000,
+                                    :sleep_second => 0)
+    begin
+      runner.run
+    #rescue
+    end
+  end
+end.collect(&:join)
 
 puts "exiting from ruby...."
