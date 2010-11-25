@@ -121,7 +121,7 @@ module StressTest
     end
 
     def do_action(action, *arguments)
-      puts "#{time_stamp}: #{action}"
+      #puts "#{time_stamp}: #{action}"
       @actions[action].__send__(action, *arguments)
     end
 
