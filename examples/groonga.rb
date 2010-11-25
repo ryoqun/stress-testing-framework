@@ -314,6 +314,13 @@ states = thread_count.times.collect{state_group.create_state}
 
 states.collect do |state|
   Thread.new do
+    loop do
+      puts state.opened_table_count
+      sleep 3
+    end
+  end
+
+  Thread.new do
     runner = StressTest::Runner.new(GroongaStressTest::Flow.new,
                                     states.first,
                                     :run_count => 100000000,
