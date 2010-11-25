@@ -86,7 +86,13 @@ module GroongaStressTest
   end
 
   class CreateTable < StressTest::Action
+    MAXIMUM_TABLE_COUNT = 1_000_000
+
     def arguments
+      if @state.opened_table_count > MAXIMUM_TABLE_COUNT
+        raise StressTest::Error::BadRoute
+      end
+
       ["Table#{time_stamp}"]
     end
 
@@ -242,6 +248,10 @@ module GroongaStressTest
 
     def random_table
       resource_set.resources.shuffle.first
+    end
+
+    def opened_table_count
+      resource_set.resources.size
     end
   end
 
