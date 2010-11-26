@@ -85,13 +85,21 @@ module GroongaStressTest
     end
   end
 
-  class CreateTable < StressTest::Action
-    MAXIMUM_TABLE_COUNT = 1000
+  module MaximumTableCount
+    MAXIMUM_TABLE_COUNT = 1000 # XXX State should have this.
 
-    def arguments
+    def check_maximum_table_count
       if @state.opened_table_count > MAXIMUM_TABLE_COUNT
         raise StressTest::Error::BadRoute
       end
+    end
+  end
+
+  class CreateTable < StressTest::Action
+    include MaximumTableCount
+
+    def arguments
+      check_maximum_table_count
 
       ["Table#{time_stamp}"]
     end
