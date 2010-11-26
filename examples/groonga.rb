@@ -29,6 +29,14 @@ module GroongaStressTest
       @table = Groonga::Hash.create(:name => @name, :key_type => "ShortText")
     end
 
+    def open
+      @table = Groonga::Context.default[@name]
+      @table.columns.each do |column|
+        @columns[column.name.split(".").last] = column
+      end
+      #XXX restore records?
+    end
+
     def define_column(name)
       column = @table.define_column(name, "ShortText")
       @columns[name] = column
@@ -85,7 +93,7 @@ module GroongaStressTest
     end
   end
 
-  module MaximumTableCount
+  module TableAction
     MAXIMUM_TABLE_COUNT = 1000 # XXX State should have this.
 
     def check_maximum_table_count
@@ -93,10 +101,14 @@ module GroongaStressTest
         raise StressTest::Error::BadRoute
       end
     end
+
+    def bad_route?(route, flow)
+      flow.profile.is_a?(StressTest::CloseResourceProfile)
+    end
   end
 
   class CreateTable < StressTest::Action
-    include MaximumTableCount
+    include TableAction
 
     def arguments
       check_maximum_table_count
@@ -107,15 +119,45 @@ module GroongaStressTest
     def create_table(name)
       @state.create_resource(Table.new(name))
     end
+  end
 
-    def bad_route?(route, flow)
-      flow.profile.is_a?(StressTest::CloseResourceProfile)
+  class CloseTable < StressTest::Action
+    include TableAction
+
+    def arguments
+      table = @state.random_table
+      raise StressTest::Error::BadRoute if table.nil?
+
+      [table.name]
+    end
+
+    def close_table(name)
+      @state.close_resource(Table.new(name))
     end
   end
 
-  #TODO CloseTable # remove reference to Table object, thereby making Ruby Table object GC-ed eventually
+  class OpenTable < StressTest::Action
+    include TableAction
 
-  #TODO OpenTable # pick random Table from Database#each
+    def arguments
+      check_maximum_table_count
+
+      tables = @state.database.select do |object|
+        object.name =~ /\ATable/ and object.is_a?(Groonga::Hash)
+      end
+      raise StressTest::Error::BadRoute if tables.empty?
+
+      table = tables.shuffle.first
+      name = table.name
+      raise StressTest::Error::BadRoute if @state.opened_table?(name)
+
+      [name] # XXX don't return groonga object, arguments should return only Ruby built-in objects because arguments can be reused across multiple Database object
+    end
+
+    def open_table(name)
+      @state.open_resource(Table.new(name))
+    end
+  end
 
   class DefineColumn < StressTest::Action
     def arguments
@@ -221,6 +263,7 @@ module GroongaStressTest
   end
 
   module StateInitializer
+    attr_reader :database
     def on_initialize
       _database_path = database_path
       puts _database_path
@@ -246,6 +289,8 @@ module GroongaStressTest
     include StateInitializer
 
     define_action :create_table, CreateTable
+    define_action :open_table, OpenTable
+    define_action :close_table, CloseTable
     define_action :remove_table, RemoveTable
     define_action :define_column, DefineColumn
     define_action :define_reference_column, DefineReferenceColumn
@@ -256,6 +301,16 @@ module GroongaStressTest
 
     def random_table
       resource_set.resources.shuffle.first
+    end
+
+    def opened_table?(name)
+      resource_set.resources.each do |table|
+        return true if table.name == name
+      end
+      #pp name
+      #pp resource_set.resources.collect(&:name)
+
+      false
     end
 
     def opened_table_count
@@ -281,6 +336,8 @@ module GroongaStressTest
     initial_action :create_table
 
     route :create_table, :to => :default, :from => :default
+    route :open_table, :to => :default, :from => :default
+    route :close_table, :to => :default, :from => :default
     route :remove_table, :to => :default, :from => :default
     route :define_column, :to => :default, :from => :default
     route :define_reference_column, :to => :default, :from => :default
@@ -308,12 +365,15 @@ Thread.new do
   end
 end
 =end
+
+=begin
 Thread.new do
   loop do
     puts ObjectSpace.count_objects
     sleep 3
   end
 end
+=end
 
 thread_count = 1
 

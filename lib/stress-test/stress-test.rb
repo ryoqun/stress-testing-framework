@@ -19,7 +19,19 @@ module StressTest
     end
 
     def delete(resource)
-      raise "bad" if (resource = @resources.delete(resource)).nil?
+      raise "bad, #{resource.inspect}" if (resource = @resources.delete(resource)).nil?
+    end
+
+    def delete_by_name(deleted_resource)
+      resources = @resources.reject do |resource|
+        resource.name == deleted_resource.name
+      end
+
+      difference = @resources - resources
+      raise "bad" if difference.empty?
+      raise "bad" if difference.size > 1
+      @resources = resources
+      difference.first
     end
 
     def empty?
@@ -108,6 +120,20 @@ module StressTest
       resource.create
       @resource_set.add(resource)
       resource
+    end
+
+    def open_resource(resource)
+      raise "bad: #{resource.class}" unless resource.is_a?(Resource)
+      resource.state = self
+      resource.open
+      @resource_set.add(resource)
+      resource
+    end
+
+    def close_resource(resource)
+      raise "bad: #{resource.class}" unless resource.is_a?(Resource)
+      result = @resource_set.delete_by_name(resource)
+      #result.remove
     end
 
     def remove_resource(resource)
